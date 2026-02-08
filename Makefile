@@ -18,3 +18,6 @@ run:
 	else \
 		go run ./cmd/hexlet-go-crawler "$(URL)"; \
 	fi
+
+lint: 
+	golangci-lint run ./...

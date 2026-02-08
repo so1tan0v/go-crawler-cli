@@ -40,11 +40,11 @@ func Action(ctx context.Context, cmd *cli.Command) error {
 
 	report, err := crawler.Analyze(ctx, opts)
 	if len(report) > 0 {
-		fmt.Fprintln(os.Stdout, string(report))
+		_, _ = fmt.Fprintf(os.Stdout, "%s\n", string(report))
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	}
 
 	return nil

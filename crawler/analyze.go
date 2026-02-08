@@ -64,15 +64,6 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 	var lastStatus int
 
 	for i := 0; i < attempts; i++ {
-		if i > 0 && opts.Delay > 0 {
-			select {
-			case <-time.After(opts.Delay):
-			case <-ctx.Done():
-				lastErr = ctx.Err()
-				break
-			}
-		}
-
 		reqCtx, cancel := context.WithTimeout(ctx, timeout)
 		req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, opts.URL, nil)
 		if err != nil {
