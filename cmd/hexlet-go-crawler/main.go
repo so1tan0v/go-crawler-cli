@@ -1,10 +1,11 @@
 package main
 
 import (
-	"code/src/domain"
-	cliapp "code/src/infra/cli-app/cli-app"
+	"code/src/application"
+	cliapp "code/src/infra/cli-app"
+
 	"context"
-	"log"
+	"fmt"
 	"os"
 )
 
@@ -17,14 +18,20 @@ const (
 func main() {
 	cliApp := cliapp.NewCliApp()
 
-	if err := cliApp.Init(appName, appInfo, version, domain.Flags); err != nil {
-		log.Fatalf("Failed to initialize CLI app: %v", err)
+	cliApp.AddAction(application.Action)
+
+	if err := cliApp.Init(appName, appInfo, version, application.AppFlags); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to initialize CLI app: %v\n", err)
+		return
 	}
+
+	cliApp.Cli.UsageText = "hexlet-go-crawler [global options] command [command options] <url>"
 
 	ctx := context.Background()
 	args := os.Args
 
 	if err := cliApp.Run(ctx, args); err != nil {
-		log.Fatalf("Failed to run CLI app: %v", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return
 	}
 }

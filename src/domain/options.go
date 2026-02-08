@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-/*Options for the analyze use case*/
+/*Параметры анализа сайта*/
 type Options struct {
 	URL         string
 	Depth       int

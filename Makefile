@@ -1,14 +1,20 @@
-BIN_DIR := bin/cmd
+BIN_DIR := bin
+BIN := $(BIN_DIR)/hexlet-go-crawler
 
-URL ?= https://hexlet.io/courses
-
-.PHONY: test build
+.PHONY: test build run
 
 test:
 	go test ./...
 
 build:
-	go build -o $(BIN_DIR)/main.go ./cmd/hexlet-go-crawler/main.go
+	mkdir -p $(BIN_DIR)
+	go build -o $(BIN) ./cmd/hexlet-go-crawler
 
 run:
-	./$(BIN_DIR)/main --url=${URL}
+	@if [ -z "$(URL)" ]; then \
+		echo "URL is required. Example: make run URL=https://example.com"; \
+
+		go run ./cmd/hexlet-go-crawler --help; \
+	else \
+		go run ./cmd/hexlet-go-crawler "$(URL)"; \
+	fi

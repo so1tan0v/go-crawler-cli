@@ -1,7 +1,6 @@
 package cli_app
 
 import (
-	"code/src/domain"
 	"context"
 
 	"github.com/urfave/cli/v3"
@@ -12,21 +11,17 @@ type CliApp struct {
 	Action func(context.Context, *cli.Command) error
 }
 
-var _ domain.Cli = (*CliApp)(nil)
-
 func NewCliApp() *CliApp {
 	return &CliApp{}
 }
 
 func (c *CliApp) Init(appName, appInfo string, version string, flags []cli.Flag) error {
-
 	c.Cli = cli.Command{
 		Name:    appName,
 		Version: version,
 		Usage:   appInfo,
 		Flags:   flags,
 		Action:  c.Action,
-		
 	}
 
 	return nil

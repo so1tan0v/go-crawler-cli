@@ -1,0 +1,51 @@
+package application
+
+import (
+	"code/crawler"
+	"code/src/domain"
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/urfave/cli/v3"
+)
+
+func Action(ctx context.Context, cmd *cli.Command) error {
+	targetURL := cmd.Args().First()
+	if targetURL == "" {
+		fmt.Fprintln(os.Stderr, "URL is required. Example: hexlet-go-crawler https://example.com")
+		_ = cli.ShowAppHelp(cmd)
+		return nil
+	}
+
+	delay := cmd.Duration("delay")
+	rps := cmd.Int("rps")
+	if rps > 0 {
+		delay = time.Second / time.Duration(rps)
+	}
+
+	opts := domain.Options{
+		URL:         targetURL,
+		Depth:       cmd.Int("depth"),
+		Retries:     cmd.Int("retries"),
+		Delay:       delay,
+		Timeout:     cmd.Duration("timeout"),
+		UserAgent:   cmd.String("user-agent"),
+		Concurrency: cmd.Int("workers"),
+		IndentJSON:  cmd.Bool("indent-json"),
+		HTTPClient:  &http.Client{},
+	}
+
+	report, err := crawler.Analyze(ctx, opts)
+	if len(report) > 0 {
+		fmt.Fprintln(os.Stdout, string(report))
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	}
+
+	return nil
+}

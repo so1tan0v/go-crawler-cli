@@ -65,7 +65,14 @@ func TestCliAppRunSuccess(t *testing.T) {
 		return nil
 	})
 
-	err := app.Init()
+	err := app.Init("gendiff", "Compares two configuration files and shows a difference.", "0.0.1", []cli.Flag{
+		&cli.StringFlag{
+			Name:    "format",
+			Aliases: []string{"f"},
+			Usage:   "output format",
+			Value:   "stylish",
+		},
+	})
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -86,7 +93,14 @@ func TestCliAppRunWithAlias(t *testing.T) {
 		return nil
 	})
 
-	err := app.Init()
+	err := app.Init("gendiff", "Compares two configuration files and shows a difference.", "0.0.1", []cli.Flag{
+		&cli.StringFlag{
+			Name:    "format",
+			Aliases: []string{"f"},
+			Usage:   "output format",
+			Value:   "stylish",
+		},
+	})
 	require.NoError(t, err)
 
 	err = app.Run(context.Background(), []string{"gendiff", "-f", "json"})

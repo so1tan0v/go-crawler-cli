@@ -3,6 +3,8 @@ package domain
 import "time"
 
 /*
+Результат анализа сайта.
+
 {
   "root_url": "https://example.com",
   "depth": 1,
@@ -18,7 +20,6 @@ import "time"
   ]
 }
 */
-
 type AnalyzeResult struct {
 	RootURL     string    `json:"root_url"`
 	Depth       int       `json:"depth"`
