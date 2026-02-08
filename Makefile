@@ -1,7 +1,6 @@
 BIN_DIR := bin/cmd
 
-URL := https://hexlet.io/courses
-
+URL ?= https://hexlet.io/courses
 
 .PHONY: test build
 

@@ -1,4 +1,4 @@
-package hexletgocrawler
+package main
 
 import "fmt"
 
