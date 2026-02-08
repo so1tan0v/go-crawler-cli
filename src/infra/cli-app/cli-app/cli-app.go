@@ -26,6 +26,7 @@ func (c *CliApp) Init(appName, appInfo string, version string, flags []cli.Flag)
 		Usage:   appInfo,
 		Flags:   flags,
 		Action:  c.Action,
+		
 	}
 
 	return nil
