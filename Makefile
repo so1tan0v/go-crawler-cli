@@ -13,7 +13,6 @@ build:
 run:
 	@if [ -z "$(URL)" ]; then \
 		echo "URL is required. Example: make run URL=https://example.com"; \
-
 		go run ./cmd/hexlet-go-crawler --help; \
 	else \
 		go run ./cmd/hexlet-go-crawler "$(URL)"; \

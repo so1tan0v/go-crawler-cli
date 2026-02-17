@@ -7,28 +7,44 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"sort"
 	"time"
 )
 
-const defaultTimeout = 15 * time.Second
-
-/*Analyze makes an HTTP request to the root URL and returns a draft JSON report.*/
 func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
+	timeout := opts.Timeout
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+
+	interval := time.Duration(0)
+	if opts.RPS > 0 {
+		interval = time.Second / time.Duration(opts.RPS)
+	} else if opts.Delay > 0 {
+		interval = opts.Delay
+	}
+
+	limiter := newRateLimiter(interval)
+	assetCache := make(map[string]domain.Asset)
+
 	res := domain.AnalyzeResult{
 		RootURL:     opts.URL,
 		Depth:       opts.Depth,
-		GeneratedAt: time.Now().UTC(),
+		GeneratedAt: nowUTC(),
 		Pages:       []domain.Page{},
 	}
 
-	page := domain.Page{
-		URL:   opts.URL,
-		Depth: 0,
-	}
-
 	if opts.URL == "" {
-		page.Status = "failed"
-		page.Error = "url is required"
+		page := domain.Page{
+			URL:          opts.URL,
+			Depth:        0,
+			Status:       "failed",
+			Error:        "url is required",
+			SEO:          domain.SEO{},
+			BrokenLinks:  []domain.BrokenLink{},
+			Assets:       []domain.Asset{},
+			DiscoveredAt: nowUTC(),
+		}
 
 		res.Pages = append(res.Pages, page)
 		out, _ := json.Marshal(res)
@@ -36,9 +52,18 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		return out, errors.New(page.Error)
 	}
 
-	if _, err := url.ParseRequestURI(opts.URL); err != nil {
-		page.Status = "failed"
-		page.Error = "invalid url"
+	startURL, err := url.ParseRequestURI(opts.URL)
+	if err != nil {
+		page := domain.Page{
+			URL:          opts.URL,
+			Depth:        0,
+			Status:       "failed",
+			Error:        "invalid url",
+			SEO:          domain.SEO{},
+			BrokenLinks:  []domain.BrokenLink{},
+			Assets:       []domain.Asset{},
+			DiscoveredAt: nowUTC(),
+		}
 
 		res.Pages = append(res.Pages, page)
 		out, _ := json.Marshal(res)
@@ -50,76 +75,169 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		opts.HTTPClient = &http.Client{}
 	}
 
-	timeout := opts.Timeout
-	if timeout <= 0 {
-		timeout = defaultTimeout
+	startHost := startURL.Host
+
+	type queueItem struct {
+		url   string
+		depth int
 	}
 
-	attempts := 1
-	if opts.Retries > 0 {
-		attempts = 1 + opts.Retries
+	maxDepthLevels := opts.Depth
+	if maxDepthLevels <= 0 {
+		maxDepthLevels = 1
 	}
 
-	var lastErr error
-	var lastStatus int
+	seen := map[string]int{opts.URL: 0}
+	q := []queueItem{{url: opts.URL, depth: 0}}
 
-	for i := 0; i < attempts; i++ {
-		reqCtx, cancel := context.WithTimeout(ctx, timeout)
-		req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, opts.URL, nil)
-		if err != nil {
-			cancel()
+	var crawlErr error
 
-			lastErr = err
+	for len(q) > 0 {
+		if ctx.Err() != nil {
+			crawlErr = ctx.Err()
+			break
+		}
+
+		item := q[0]
+		q = q[1:]
+
+		status, body, ferr := fetchHTML(ctx, opts, item.url, timeout, limiter)
+		page := domain.Page{
+			URL:          item.url,
+			Depth:        item.depth,
+			HTTPStatus:   status,
+			Status:       "",
+			Error:        "",
+			SEO:          domain.SEO{},
+			BrokenLinks:  []domain.BrokenLink{},
+			Assets:       []domain.Asset{},
+			DiscoveredAt: nowUTC(),
+		}
+
+		if ferr != nil {
+			page.Status = "failed"
+			page.Error = ferr.Error()
+			res.Pages = append(res.Pages, page)
+
+			if crawlErr == nil {
+				crawlErr = ferr
+			}
 
 			continue
 		}
 
-		if opts.UserAgent != "" {
-			req.Header.Set("User-Agent", opts.UserAgent)
+		if status >= 200 && status < 400 {
+			page.Status = "ok"
+		} else {
+			page.Status = "failed"
 		}
 
-		resp, err := opts.HTTPClient.Do(req)
-		cancel()
-		if err != nil {
-			lastErr = err
+		if len(body) > 0 && status >= 200 && status < 400 {
+			page.SEO = extractSEO(body)
 
-			continue
+			links, _ := extractLinks(item.url, body)
+			pageLinks, _ := extractPageLinks(item.url, body)
+			assets, _ := extractAssets(item.url, body)
+
+			seenAssets := make(map[string]struct{})
+			assetURLs := make(map[string]struct{})
+			for _, a := range assets {
+				if _, ok := seenAssets[a.URL]; ok {
+					continue
+				}
+
+				seenAssets[a.URL] = struct{}{}
+				assetURLs[a.URL] = struct{}{}
+
+				if cached, ok := assetCache[a.URL]; ok {
+					page.Assets = append(page.Assets, cached)
+
+					continue
+				}
+
+				info := fetchAssetInfo(ctx, opts, a.URL, timeout, limiter)
+				info.URL = a.URL
+				info.Type = a.Type
+				assetCache[a.URL] = info
+				page.Assets = append(page.Assets, info)
+			}
+
+			sort.Slice(page.Assets, func(i, j int) bool { return page.Assets[i].URL < page.Assets[j].URL })
+
+			broken := make([]domain.BrokenLink, 0)
+			for _, linkURL := range links {
+				if _, ok := assetURLs[linkURL]; ok {
+					continue
+				}
+
+				st, lerr := checkURL(ctx, opts, linkURL, timeout, limiter)
+				if lerr != nil {
+					broken = append(broken, domain.BrokenLink{URL: linkURL, StatusCode: 0, Error: lerr.Error()})
+					continue
+				}
+
+				if st >= 400 {
+					broken = append(broken, domain.BrokenLink{URL: linkURL, StatusCode: st, Error: http.StatusText(st)})
+				}
+			}
+
+			for _, a := range page.Assets {
+				if a.StatusCode >= 400 {
+					broken = append(broken, domain.BrokenLink{URL: a.URL, StatusCode: a.StatusCode, Error: http.StatusText(a.StatusCode)})
+				} else if a.StatusCode == 0 && a.Error != "" {
+					broken = append(broken, domain.BrokenLink{URL: a.URL, StatusCode: 0, Error: a.Error})
+				}
+			}
+
+			sort.Slice(broken, func(i, j int) bool { return broken[i].URL < broken[j].URL })
+			page.BrokenLinks = broken
+
+			nextDepth := item.depth + 1
+			if nextDepth < maxDepthLevels {
+				for _, linkURL := range pageLinks {
+					u, perr := url.Parse(linkURL)
+					if perr != nil {
+						continue
+					}
+
+					if u.Host != startHost {
+						continue
+					}
+
+					if _, ok := seen[linkURL]; ok {
+						continue
+
+					}
+					seen[linkURL] = nextDepth
+					q = append(q, queueItem{url: linkURL, depth: nextDepth})
+				}
+			}
 		}
 
-		lastStatus = resp.StatusCode
-
-		_ = resp.Body.Close()
-		lastErr = nil
-
-		break
+		res.Pages = append(res.Pages, page)
 	}
 
-	page.HTTPStatus = lastStatus
+	sort.Slice(res.Pages, func(i, j int) bool {
+		if res.Pages[i].Depth != res.Pages[j].Depth {
+			return res.Pages[i].Depth < res.Pages[j].Depth
+		}
 
-	if lastErr != nil {
-		page.Status = "failed"
-		page.Error = lastErr.Error()
-	} else if lastStatus >= 200 && lastStatus < 400 {
-		page.Status = "ok"
-	} else {
-		page.Status = "failed"
-	}
-
-	res.Pages = append(res.Pages, page)
+		return res.Pages[i].URL < res.Pages[j].URL
+	})
 
 	var (
-		out []byte
-		err error
+		out  []byte
+		merr error
 	)
 
 	if opts.IndentJSON {
-		out, err = json.MarshalIndent(res, "", "  ")
+		out, merr = json.MarshalIndent(res, "", "  ")
 	} else {
-		out, err = json.Marshal(res)
+		out, merr = json.Marshal(res)
 	}
-	if err != nil {
-		return nil, err
+	if merr != nil {
+		return nil, merr
 	}
 
-	return out, lastErr
+	return out, crawlErr
 }
