@@ -40,10 +40,10 @@ func Action(ctx context.Context, cmd *cli.Command) error {
 		HTTPClient:  &http.Client{},
 	}
 
-	report, err := crawler.Analyze(ctx, opts)
+	report, _ := crawler.Analyze(ctx, opts)
 	if len(report) > 0 {
 		_, _ = fmt.Fprintf(os.Stdout, "%s\n", string(report))
 	}
 
-	return err
+	return nil
 }
