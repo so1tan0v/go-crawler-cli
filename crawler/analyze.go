@@ -161,8 +161,6 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 				page.Assets = append(page.Assets, info)
 			}
 
-			sort.Slice(page.Assets, func(i, j int) bool { return page.Assets[i].URL < page.Assets[j].URL })
-
 			broken := make([]domain.BrokenLink, 0)
 			for _, linkURL := range pageLinks {
 				st, lerr := checkURL(ctx, opts, linkURL, timeout, limiter)

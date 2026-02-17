@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"code/src/domain"
 	"net/url"
-	"sort"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -57,8 +56,6 @@ func extractAssets(baseURL string, htmlBytes []byte) ([]domain.Asset, error) {
 			add("style", v)
 		}
 	})
-
-	sort.Slice(out, func(i, j int) bool { return out[i].URL < out[j].URL })
 
 	return out, nil
 }

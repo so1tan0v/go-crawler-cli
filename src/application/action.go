@@ -45,9 +45,5 @@ func Action(ctx context.Context, cmd *cli.Command) error {
 		_, _ = fmt.Fprintf(os.Stdout, "%s\n", string(report))
 	}
 
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	}
-
-	return nil
+	return err
 }
