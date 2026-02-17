@@ -248,20 +248,18 @@ func TestAnalyzeBrokenLinksFromHTML(t *testing.T) {
 
 	_, ok := got[okCSS]
 	assert.False(t, ok)
-	_, ok = got[okURL]
+	_, ok = got[ghostCSS]
 	assert.False(t, ok)
 
-	require.Contains(t, got, ghostCSS)
-	assert.Equal(t, 404, got[ghostCSS].StatusCode)
-	assert.Equal(t, "Not Found", got[ghostCSS].Error)
+	_, ok = got[okURL]
+	assert.False(t, ok)
 
 	require.Contains(t, got, missingURL)
 	assert.Equal(t, 404, got[missingURL].StatusCode)
 	assert.Equal(t, "Not Found", got[missingURL].Error)
 
-	require.Contains(t, got, cdnJS)
-	assert.Zero(t, got[cdnJS].StatusCode)
-	assert.Contains(t, got[cdnJS].Error, "no such host")
+	_, ok = got[cdnJS]
+	assert.False(t, ok)
 }
 
 func TestAnalyzeSEOAllTagsAndEntities(t *testing.T) {

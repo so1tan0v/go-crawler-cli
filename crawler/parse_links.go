@@ -118,6 +118,10 @@ func normalizeLink(base *url.URL, raw string) string {
 	}
 
 	abs.Fragment = ""
+	if abs.Path == "/" {
+		abs.Path = ""
+		abs.RawPath = ""
+	}
 
 	return abs.String()
 }

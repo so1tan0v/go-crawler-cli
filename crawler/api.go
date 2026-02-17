@@ -10,4 +10,3 @@ type Page = domain.Page
 type SEO = domain.SEO
 type BrokenLink = domain.BrokenLink
 type Asset = domain.Asset
-

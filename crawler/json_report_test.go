@@ -89,7 +89,7 @@ func TestAnalyzeJSONReportMatchesReference(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ref := `{"root_url":"https://example.com","depth":1,"generated_at":"2024-06-01T12:34:56Z","pages":[{"url":"https://example.com","depth":0,"http_status":200,"status":"ok","error":"","seo":{"has_title":true,"title":"Example title","has_description":true,"description":"Example description","has_h1":true},"broken_links":[{"url":"https://example.com/missing","status_code":404,"error":"Not Found"}],"assets":[{"url":"https://example.com/static/logo.png","type":"style","status_code":200,"size_bytes":12345,"error":""}],"discovered_at":"2024-06-01T12:34:56Z"}]}`
+	ref := `{"root_url":"https://example.com","depth":1,"generated_at":"2024-06-01T12:34:56Z","pages":[{"url":"https://example.com","depth":0,"http_status":200,"status":"ok","seo":{"has_title":true,"title":"Example title","has_description":true,"description":"Example description","has_h1":true},"broken_links":[{"url":"https://example.com/missing","status_code":404,"error":"Not Found"}],"assets":[{"url":"https://example.com/static/logo.png","type":"style","status_code":200,"size_bytes":12345}],"discovered_at":"2024-06-01T12:34:56Z"}]}`
 
 	var gotObj any
 	var refObj any

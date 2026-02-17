@@ -135,7 +135,6 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		if len(body) > 0 && status >= 200 && status < 400 {
 			page.SEO = extractSEO(body)
 
-			links, _ := extractLinks(item.url, body)
 			pageLinks, _ := extractPageLinks(item.url, body)
 			assets, _ := extractAssets(item.url, body)
 
@@ -165,11 +164,7 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 			sort.Slice(page.Assets, func(i, j int) bool { return page.Assets[i].URL < page.Assets[j].URL })
 
 			broken := make([]domain.BrokenLink, 0)
-			for _, linkURL := range links {
-				if _, ok := assetURLs[linkURL]; ok {
-					continue
-				}
-
+			for _, linkURL := range pageLinks {
 				st, lerr := checkURL(ctx, opts, linkURL, timeout, limiter)
 				if lerr != nil {
 					broken = append(broken, domain.BrokenLink{URL: linkURL, StatusCode: 0, Error: lerr.Error()})
@@ -178,14 +173,6 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 
 				if st >= 400 {
 					broken = append(broken, domain.BrokenLink{URL: linkURL, StatusCode: st, Error: http.StatusText(st)})
-				}
-			}
-
-			for _, a := range page.Assets {
-				if a.StatusCode >= 400 {
-					broken = append(broken, domain.BrokenLink{URL: a.URL, StatusCode: a.StatusCode, Error: http.StatusText(a.StatusCode)})
-				} else if a.StatusCode == 0 && a.Error != "" {
-					broken = append(broken, domain.BrokenLink{URL: a.URL, StatusCode: 0, Error: a.Error})
 				}
 			}
 
