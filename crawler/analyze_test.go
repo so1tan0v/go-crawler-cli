@@ -100,7 +100,7 @@ func TestAnalyzeNon2xxStatusIsFailed(t *testing.T) {
 
 			require.Len(t, report.Pages, 1)
 			assert.Equal(t, tc.statusCode, report.Pages[0].HTTPStatus)
-			assert.Equal(t, "failed", report.Pages[0].Status)
+			assert.Equal(t, "error", report.Pages[0].Status)
 		})
 	}
 }
@@ -129,7 +129,7 @@ func TestAnalyzeNetworkErrorReturnsErrorAndReport(t *testing.T) {
 	require.NoError(t, json.Unmarshal(out, &report))
 
 	require.Len(t, report.Pages, 1)
-	assert.Equal(t, "failed", report.Pages[0].Status)
+	assert.Equal(t, "error", report.Pages[0].Status)
 	assert.Contains(t, report.Pages[0].Error, "network failure")
 }
 
@@ -159,7 +159,7 @@ func TestAnalyzeTimeout(t *testing.T) {
 	require.NoError(t, json.Unmarshal(out, &report))
 
 	require.Len(t, report.Pages, 1)
-	assert.Equal(t, "failed", report.Pages[0].Status)
+	assert.Equal(t, "error", report.Pages[0].Status)
 	assert.NotEmpty(t, report.Pages[0].Error)
 }
 
@@ -735,7 +735,7 @@ func TestAnalyzeNoRetriesOnNonTemporaryStatus(t *testing.T) {
 	var report domain.AnalyzeResult
 	require.NoError(t, json.Unmarshal(out, &report))
 	require.Len(t, report.Pages, 1)
-	assert.Equal(t, "failed", report.Pages[0].Status)
+	assert.Equal(t, "error", report.Pages[0].Status)
 	assert.Equal(t, 404, report.Pages[0].HTTPStatus)
 
 	mu.Lock()

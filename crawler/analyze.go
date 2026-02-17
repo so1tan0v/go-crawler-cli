@@ -38,11 +38,9 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		page := domain.Page{
 			URL:          opts.URL,
 			Depth:        0,
-			Status:       "failed",
+			Status:       "error",
 			Error:        "url is required",
 			SEO:          domain.SEO{},
-			BrokenLinks:  []domain.BrokenLink{},
-			Assets:       []domain.Asset{},
 			DiscoveredAt: nowUTC(),
 		}
 
@@ -57,11 +55,9 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		page := domain.Page{
 			URL:          opts.URL,
 			Depth:        0,
-			Status:       "failed",
+			Status:       "error",
 			Error:        "invalid url",
 			SEO:          domain.SEO{},
-			BrokenLinks:  []domain.BrokenLink{},
-			Assets:       []domain.Asset{},
 			DiscoveredAt: nowUTC(),
 		}
 
@@ -109,13 +105,11 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 			Status:       "",
 			Error:        "",
 			SEO:          domain.SEO{},
-			BrokenLinks:  []domain.BrokenLink{},
-			Assets:       []domain.Asset{},
 			DiscoveredAt: nowUTC(),
 		}
 
 		if ferr != nil {
-			page.Status = "failed"
+			page.Status = "error"
 			page.Error = ferr.Error()
 			res.Pages = append(res.Pages, page)
 
@@ -129,10 +123,13 @@ func Analyze(ctx context.Context, opts domain.Options) ([]byte, error) {
 		if status >= 200 && status < 400 {
 			page.Status = "ok"
 		} else {
-			page.Status = "failed"
+			page.Status = "error"
 		}
 
 		if len(body) > 0 && status >= 200 && status < 400 {
+			page.Assets = []domain.Asset{}
+			page.BrokenLinks = []domain.BrokenLink{}
+
 			page.SEO = extractSEO(body)
 
 			pageLinks, _ := extractPageLinks(item.url, body)
