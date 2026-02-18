@@ -1,6 +1,6 @@
 package crawler
 
-import "code/src/domain"
+import "code/internal/domain"
 
 type Options = domain.Options
 

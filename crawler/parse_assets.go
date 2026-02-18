@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"bytes"
-	"code/src/domain"
+	"code/internal/domain"
 	"net/url"
 
 	"github.com/PuerkitoBio/goquery"

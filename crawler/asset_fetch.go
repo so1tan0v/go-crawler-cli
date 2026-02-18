@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"code/src/domain"
+	"code/internal/domain"
 	"context"
 	"errors"
 	"io"

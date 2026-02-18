@@ -2,7 +2,7 @@ package crawler_test
 
 import (
 	"code/crawler"
-	"code/src/domain"
+	"code/internal/domain"
 	"context"
 	"encoding/json"
 	"errors"
@@ -976,4 +976,156 @@ func TestAnalyzeAssetErrorStatusInReport(t *testing.T) {
 	assert.Equal(t, 500, as.StatusCode)
 	assert.Equal(t, int64(0), as.SizeBytes)
 	assert.NotEmpty(t, as.Error)
+}
+
+func TestAnalyzeUsesWorkersForConcurrentPageProcessing(t *testing.T) {
+	t.Parallel()
+
+	root := "http://simple.test/index.html"
+	a := "http://simple.test/a"
+	b := "http://simple.test/b"
+	c := "http://simple.test/c"
+
+	rootHTML := `<!doctype html><html><body>
+<a href="/a">a</a>
+<a href="/b">b</a>
+<a href="/c">c</a>
+</body></html>`
+
+	childHTML := `<!doctype html><html><body><p>leaf</p></body></html>`
+
+	var mu sync.Mutex
+	inFlight := 0
+	maxInFlight := 0
+
+	client := &http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			switch r.Method {
+			case http.MethodGet:
+				switch r.URL.String() {
+				case root:
+					return &http.Response{
+						StatusCode: 200,
+						Body:       io.NopCloser(strings.NewReader(rootHTML)),
+						Header:     make(http.Header),
+						Request:    r,
+					}, nil
+				case a, b, c:
+					mu.Lock()
+					inFlight++
+					if inFlight > maxInFlight {
+						maxInFlight = inFlight
+					}
+					mu.Unlock()
+
+					time.Sleep(40 * time.Millisecond)
+
+					mu.Lock()
+					inFlight--
+					mu.Unlock()
+
+					return &http.Response{
+						StatusCode: 200,
+						Body:       io.NopCloser(strings.NewReader(childHTML)),
+						Header:     make(http.Header),
+						Request:    r,
+					}, nil
+				}
+			case http.MethodHead:
+				// Broken-link checks on root links.
+				if r.URL.String() == a || r.URL.String() == b || r.URL.String() == c {
+					return &http.Response{
+						StatusCode: 200,
+						Body:       io.NopCloser(strings.NewReader("ok")),
+						Header:     make(http.Header),
+						Request:    r,
+					}, nil
+				}
+			}
+
+			return nil, errors.New("unexpected request: " + r.Method + " " + r.URL.String())
+		}),
+	}
+
+	out, err := crawler.Analyze(context.Background(), domain.Options{
+		URL:         root,
+		Depth:       2, // root + first level pages
+		Concurrency: 3,
+		Timeout:     2 * time.Second,
+		HTTPClient:  client,
+	})
+	require.NoError(t, err)
+
+	var report domain.AnalyzeResult
+	require.NoError(t, json.Unmarshal(out, &report))
+	require.Len(t, report.Pages, 4)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.GreaterOrEqual(t, maxInFlight, 2, "expected parallel processing with workers > 1")
+}
+
+func TestAnalyzeCachesRepeatedLinkChecksAcrossPages(t *testing.T) {
+	t.Parallel()
+
+	root := "http://simple.test/index.html"
+	a := "http://simple.test/a"
+	b := "http://simple.test/b"
+	sharedBroken := "http://simple.test/shared-broken"
+
+	rootHTML := `<!doctype html><html><body>
+<a href="/a">a</a>
+<a href="/b">b</a>
+</body></html>`
+	aHTML := `<!doctype html><html><body><a href="/shared-broken">x</a></body></html>`
+	bHTML := `<!doctype html><html><body><a href="/shared-broken">x</a></body></html>`
+
+	var mu sync.Mutex
+	sharedChecks := 0
+
+	client := &http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			if r.Method == http.MethodGet {
+				switch r.URL.String() {
+				case root:
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(rootHTML)), Header: make(http.Header), Request: r}, nil
+				case a:
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(aHTML)), Header: make(http.Header), Request: r}, nil
+				case b:
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(bHTML)), Header: make(http.Header), Request: r}, nil
+				}
+			}
+
+			if r.Method == http.MethodHead {
+				switch r.URL.String() {
+				case a, b:
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header), Request: r}, nil
+				case sharedBroken:
+					mu.Lock()
+					sharedChecks++
+					mu.Unlock()
+					return &http.Response{StatusCode: 404, Body: io.NopCloser(strings.NewReader("not found")), Header: make(http.Header), Request: r}, nil
+				}
+			}
+
+			return nil, errors.New("unexpected request: " + r.Method + " " + r.URL.String())
+		}),
+	}
+
+	out, err := crawler.Analyze(context.Background(), domain.Options{
+		URL:         root,
+		Depth:       2,
+		Concurrency: 4,
+		Timeout:     2 * time.Second,
+		HTTPClient:  client,
+	})
+	require.NoError(t, err)
+
+	var report domain.AnalyzeResult
+	require.NoError(t, json.Unmarshal(out, &report))
+	require.Len(t, report.Pages, 3)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 1, sharedChecks, "shared link should be checked once due to cache")
 }
