@@ -2,7 +2,7 @@ package application
 
 import (
 	"code/crawler"
-	"code/src/domain"
+	"code/internal/domain"
 	"context"
 	"fmt"
 	"net/http"

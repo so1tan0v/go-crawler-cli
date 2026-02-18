@@ -1,8 +1,8 @@
 package main
 
 import (
-	"code/src/application"
-	cliapp "code/src/infra/cli-app"
+	"code/internal/application"
+	cliapp "code/internal/infra/cli-app"
 
 	"context"
 	"fmt"
