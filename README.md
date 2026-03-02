@@ -2,6 +2,12 @@
 
 ## Instalation
 
+### Bash
+
+``` bash
+curl -sfL https://raw.githubusercontent.com/so1tan0v/go-craw
+ler-cli/main/install.sh | sh
+```
 
 
 ## Help
@@ -13,7 +19,7 @@ USAGE:
    so1-crawler [global options] command [command options] <url>
 
 VERSION:
-   1.0.1
+   some-version
 
 GLOBAL OPTIONS:
    --depth int          crawl depth (default: 10)

@@ -26,8 +26,7 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: |
-          path/to/dependencies
-          some/other/dependencies
+          bin/
         key: ${{ runner.os }}-primes
 
     - name: Build
