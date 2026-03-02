@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION="v1.0.3"
+VERSION="v1.1.0"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=amd64
 
