@@ -18,7 +18,7 @@ func Action(ctx context.Context, cmd *cli.Command) error {
 	targetURL = strings.TrimPrefix(targetURL, "url=")
 
 	if targetURL == "" {
-		fmt.Fprintln(os.Stderr, "URL is required. Example: hexlet-go-crawler https://example.com")
+		fmt.Fprintln(os.Stderr, "URL is required. Example: so1-crawler https://example.com")
 		_ = cli.ShowAppHelp(cmd)
 
 		return nil

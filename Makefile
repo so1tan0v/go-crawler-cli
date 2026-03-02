@@ -1,5 +1,5 @@
 BIN_DIR := bin
-BIN := $(BIN_DIR)/hexlet-go-crawler
+BIN := $(BIN_DIR)/so1-crawler
 
 .PHONY: test build run
 
@@ -8,14 +8,14 @@ test:
 
 build:
 	mkdir -p $(BIN_DIR)
-	go build -o $(BIN) ./cmd/hexlet-go-crawler
+	go build -o $(BIN) ./cmd/so1-crawler
 
 run:
 	@if [ -z "$(URL)" ]; then \
 		echo "URL is required. Example: make run URL=https://example.com"; \
-		go run ./cmd/hexlet-go-crawler --help; \
+		go run ./cmd/so1-crawler --help; \
 	else \
-		go run ./cmd/hexlet-go-crawler "$(URL)"; \
+		go run ./cmd/so1-crawler "$(URL)"; \
 	fi
 
 lint: 

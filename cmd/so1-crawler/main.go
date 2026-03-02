@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	appName = "hexlet-go-crawler"
+	appName = "so1-crawler"
 	appInfo = "analyze a website structure"
-	version = "0.0.1"
+	version = "1.0.1"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	cliApp.Cli.UsageText = "hexlet-go-crawler [global options] command [command options] <url>"
+	cliApp.Cli.UsageText = "so1-crawler [global options] command [command options] <url>"
 
 	ctx := context.Background()
 	args := os.Args
