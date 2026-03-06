@@ -12,7 +12,7 @@ import (
 const (
 	appName = "so1-crawler"
 	appInfo = "analyze a website structure"
-	version = "1.1.0"
+	version = "1.1.1"
 )
 
 func main() {

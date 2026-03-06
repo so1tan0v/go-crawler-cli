@@ -2,10 +2,13 @@
 
 set -e
 
-VERSION="v1.1.0"
+VERSION="v1.1.1"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=amd64
 
 URL="https://github.com/so1tan0v/go-crawler-cli/releases/download/$VERSION/so1-crawler-${OS}-${ARCH}"
 sudo curl -L $URL -o /usr/local/bin/so1-crawler
 sudo chmod +x /usr/local/bin/so1-crawler
+
+echo "so1-crawler installed successfully!"
+echo "run 'so1-crawler --help' to get started"
