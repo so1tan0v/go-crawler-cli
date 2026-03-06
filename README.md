@@ -1,12 +1,11 @@
-## Into
+# Crawler
 
-## Instalation
+A command-line tool for analyzing website structure. Crawls a site up to a configurable depth, collects SEO metadata (title, meta description, h1), detects broken links, and lists assets (images, scripts, styles) with their sizes and status codes. Outputs a JSON report suitable for audits and monitoring.
 
-### Bash
+## Installation
 
 ``` bash
-curl -sfL https://raw.githubusercontent.com/so1tan0v/go-craw
-ler-cli/main/install.sh | sh
+curl -sfL https://raw.githubusercontent.com/so1tan0v/go-crawler-cli/main/install.sh | sh
 ```
 
 
